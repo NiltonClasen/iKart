@@ -4,19 +4,19 @@ using SWNetwork;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class GameSceneManager : MonoBehaviour
+public class GerenciadorAcoes : MonoBehaviour
 {
-    public int lapsToWin = 3;
-    public int countdown = 5;
+    public int voltas = 3;
+    public int contagemRegre = 5;
 
-    public GUIManager guiManager;
+    public GerenciadorGUI guiManager;
 
     public enum GameState { waiting, starting, started, finished };
     public GameState State { get => _state; private set => _state = value; }
     private GameState _state;
 
-    int countdown_;
-    int lap_;
+    int contagem_;
+    int voltas_;
 
     RoomPropertyAgent roomPropertyAgent;
     const string PLAYER_PRESSED_ENTER = "PlayersPressedEnter";
@@ -24,9 +24,8 @@ public class GameSceneManager : MonoBehaviour
 
     private void Start()
     {
-        guiManager.SetLapRecord(lap_, lapsToWin);
+        guiManager.SetLapRecord(voltas_, voltas);
 
-        // get a reference of the RoomPropertyAgent component
         roomPropertyAgent = GetComponent<RoomPropertyAgent>();
     }
 
@@ -35,29 +34,25 @@ public class GameSceneManager : MonoBehaviour
         GameObject go = other.gameObject;
         NetworkID networkID = go.GetComponent<NetworkID>();
 
-        // check if the player owns the GameObject, we don't care when the other player crosses the finish line. 
-        // Players update their own lap counts.
         if (networkID.IsMine)
         {
-            lap_ = lap_ + 1;
-            guiManager.SetLapRecord(lap_, lapsToWin);
+            voltas_ = voltas_ + 1;
+            guiManager.SetLapRecord(voltas_, voltas);
 
-            if (lap_ == lapsToWin)
+            if (voltas_ == voltas)
             {
-                Debug.Log("Winner!!");
-                string winnerId = roomPropertyAgent.GetPropertyWithName(WIINER_ID).GetStringValue();
-                Debug.Log("OnTriggerEnter winnerID " + winnerId);
+                Debug.Log("Ganhou!!");
+                string idGanhador = roomPropertyAgent.GetPropertyWithName(WIINER_ID).GetStringValue();
+                Debug.Log("OnTriggerEnter winnerID " + idGanhador);
 
-                // if winnerId is empty, local player is the winner
-                // If the winner did not leave the game and finished the laps again, the player should still be the winner
-                if (string.IsNullOrEmpty(winnerId) || winnerId.Equals(NetworkClient.Instance.PlayerId))
+                if (string.IsNullOrEmpty(idGanhador) || idGanhador.Equals(NetworkClient.Instance.PlayerId))
                 {
                     roomPropertyAgent.Modify(WIINER_ID, NetworkClient.Instance.PlayerId);
-                    guiManager.SetMainText("1st");
+                    guiManager.SetMainText("Primeiro");
                 }
                 else
                 {
-                    guiManager.SetMainText("2nd");
+                    guiManager.SetMainText("Segundo");
                 }
 
                 State = GameState.finished;
@@ -71,11 +66,9 @@ public class GameSceneManager : MonoBehaviour
         {
             if (Input.GetKeyUp(KeyCode.Return))
             {
-                // start the countdown
-                Debug.Log("Starting...");
+                Debug.Log("Começando a corrida...");
                 State = GameState.starting;
-
-                // Modify the PlayersPressedEnter sync property.
+	            // Modifica a propriedade de inicio de corrida e sincroniza entre os corredores
                 int playerPressedEnter = roomPropertyAgent.GetPropertyWithName(PLAYER_PRESSED_ENTER).GetIntValue();
                 roomPropertyAgent.Modify(PLAYER_PRESSED_ENTER, playerPressedEnter + 1);
             }
@@ -84,7 +77,7 @@ public class GameSceneManager : MonoBehaviour
         {
             if (Input.GetKeyUp(KeyCode.Return))
             {
-                Debug.Log("Quiting...");
+                Debug.Log("Saindo...");
                 Exit();
             }
         }
@@ -92,10 +85,8 @@ public class GameSceneManager : MonoBehaviour
 
     void Exit()
     {
-        // Disconnects from the game servers
         NetworkClient.Instance.DisconnectFromRoom();
 
-        // leaves room in the lobby server.
         NetworkClient.Lobby.LeaveRoom((bool ok, SWLobbyError error) =>
         {
             if (!ok)
@@ -103,9 +94,8 @@ public class GameSceneManager : MonoBehaviour
                 Debug.LogError(error);
             }
 
-            Debug.Log("Left room");
-
-            // load the lobby scene
+            Debug.Log("Saiu da sala");
+            // Volta para a tela do lobby
             SceneManager.LoadScene(0);
         });
     }
@@ -114,106 +104,88 @@ public class GameSceneManager : MonoBehaviour
     {
         if (State == GameState.starting)
         {
-            Debug.Log(countdown_);
-            if (countdown_ == 0)
+            Debug.Log(contagem_);
+            if (contagem_ == 0)
             {
-                // countdown is 0, start the game
-                guiManager.SetMainText("Go");
+                guiManager.SetMainText("Já!");
                 State = GameState.started;
-                Debug.Log("Started");
+                Debug.Log("Começou");
             }
             else
             {
-                guiManager.SetMainText(countdown_.ToString());
-                countdown_ = countdown_ - 1;
+                guiManager.SetMainText(contagem_.ToString());
+                contagem_ = contagem_ - 1;
             }
         }
         else
         {
-            // clear main text and stop timer
             guiManager.SetMainText("");
             CancelInvoke("Countdown");
         }
     }
 
 
-    // SceneSpanwer events
     public void OnSpawnerReady(bool finishedSceneSetup)
     {
-        // scene has not been set up. spawn a car for the local player.
         if (!finishedSceneSetup)
         {
-            /* 
-                assign different spawn points for the players in the room
-                This is okay for this tutorial as we only have 2 players in a room and we are not handling host migration.
-                To properly assign spawn points, you should use roomPropertyAgent or custom room data.
-            */
+
             if (NetworkClient.Instance.IsHost)
-            {
+            {//caso seja o host, spawna o carro no lado esquerdo
                 NetworkClient.Instance.LastSpawner.SpawnForPlayer(0, 1);
             }
             else
             {
                 NetworkClient.Instance.LastSpawner.SpawnForPlayer(0, 0);
             }
-
-            // tells the SceneSpawner the local player has finished scene setup.
+            // O início do jogo está correto e avisa o SceneSpawner
             NetworkClient.Instance.LastSpawner.PlayerFinishedSceneSetup();
         }
     }
-
-    // PlayersPressedEnter events
+    // Evento de enter
     public void OnPlayersPressedEnterValueChanged()
     {
         int playerPressedEnter = roomPropertyAgent.GetPropertyWithName(PLAYER_PRESSED_ENTER).GetIntValue();
-
-        // check if all players have pressed Enter
+        // Verifica se todos os jogadores apertaram enter
         if(playerPressedEnter == 2)
         {
-            // start the countdown
+            // começa a contagem
             InvokeRepeating("Countdown", 0.0f, 1.0f);
-            countdown_ = countdown;
+            contagem_ = contagemRegre;
         }
     }
 
     public void OnPlayersPressedEnterValueReady()
     {
         int playerPressedEnter = roomPropertyAgent.GetPropertyWithName(PLAYER_PRESSED_ENTER).GetIntValue();
-
-        // check if all players have pressed Enter
+        // Verifica se todos os jogadores apertaram enter
         if (playerPressedEnter == 2)
         {
-            // the player probably got disconnected from the room
-            // If all players has pressed the Enter key, the game has started already.
+            // Se todos os jogadores apertaram enter, começa o jogo e vai para a contagem
             State = GameState.started;
-            Debug.Log("Started");
+            Debug.Log("Todos os jogadores apertaram enter");
         }
     }
 
     public void OnPlayersPressedEnterValueConflict(SWSyncConflict conflict, SWSyncedProperty property)
     {
-        // If players pressed the Key at the same time, we might get conflict
-        // The game server will receive two requests to change the PlayersPressEnter value from 0 to 1
-        // The game server will accept the first request and change PlayersPressEnter value to 1
-        // The second request will fail and player who sent the second request will get a confict
+        //tratamento para ver se os dois jogadores apertaram enter ao mesmo tempo
         int remotePlayerPressed = (int)conflict.remoteValue;
-
-        // Add 1 to the remote PlayerPressedEnter value to resolve the conflict.
+        // Adiciona 1 ao valor PlayerPressedEnter remoto para resolver o conflito.
         int resolvedPlayerPressed = remotePlayerPressed + 1;
 
         property.Resolve(resolvedPlayerPressed);
     }
-
-    // WinnerId events
+    // Evento de ganhador
     public void OnWinnerIdValueChanged()
     {
-        string winnerId = roomPropertyAgent.GetPropertyWithName(WIINER_ID).GetStringValue();
-        Debug.Log("OnWinnerIdValueChanged winnerID " + winnerId);
+        string idGanhador = roomPropertyAgent.GetPropertyWithName(WIINER_ID).GetStringValue();
+        Debug.Log("OnWinnerIdValueChanged idGanhador " + idGanhador);
     }
 
     public void OnWinnerIdValueReady()
     {
-        string winnerId = roomPropertyAgent.GetPropertyWithName(WIINER_ID).GetStringValue();
-        Debug.Log("OnWinnerIdValueReady winnerID " + winnerId);
+        string idGanhador = roomPropertyAgent.GetPropertyWithName(WIINER_ID).GetStringValue();
+        Debug.Log("OnWinnerIdValueReady idGanhador " + idGanhador);
     }
 }

@@ -1105,7 +1105,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   LoggingLevel: 3
-  API_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI1ZDczM2Q5YzQwZjlhYjAwMTlhMzhmYmQiLCJzdGFnZSI6MTU2NzgzMzUwMDMwMCwiaWF0IjoxNTY3ODMzNTAwfQ.HTkd74YG8DR0_2SIYsAHEo125E2G_7saifRjn1nciSQ
+  API_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI1ZWVmYzk1YWQ2MjJmZDAwMTJlODFmMDUiLCJzdGFnZSI6MTU5Mjc3Mjk1NDA1NSwiaWF0IjoxNTkyNzcyOTU0fQ.f-PTkWICBsnX9WWHFS_lnXVwMt54dAh1wl5ygHJJERs
   LogFilePath: 
 --- !u!1 &762591145
 GameObject:
@@ -1482,7 +1482,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Enter nickname...
+  m_Text: Coloque seu nome
 --- !u!222 &1140322253
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2226,7 +2226,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Cancel
+  m_Text: Cancelar
 --- !u!222 &1976685549
 CanvasRenderer:
   m_ObjectHideFlags: 0

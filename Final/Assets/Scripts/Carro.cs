@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using SWNetwork;
 using UnityEngine;
 
-public class CarMovement : MonoBehaviour
+public class Carro : MonoBehaviour
 {
     public float engineForce = 900f;
     public float steerAngle = 30f;
@@ -19,36 +19,35 @@ public class CarMovement : MonoBehaviour
     public Transform rearRightTransform;
     public Transform rearLeftTransform;
 
-    // used for lowering the center of mass of the car
     public Transform centerOfMass;
 
-    // expose wheel rotate for the generic tracker
     public Quaternion frontWheelRot;
     public Quaternion rearWheelRot;
 
-    GameSceneManager gameSceneManager;
+    GerenciadorAcoes gerenciadorAcoes;
 
     NetworkID networkId;
 
     private void Start()
     {
         Rigidbody rb = GetComponent<Rigidbody>();
+        //define o centro da massa como o local atual do componente
         rb.centerOfMass = centerOfMass.localPosition;
-        gameSceneManager = FindObjectOfType<GameSceneManager>();
+        gerenciadorAcoes = FindObjectOfType<GerenciadorAcoes>();
 
-        // initialize networkId
+        // inicia o componente de conexão
         networkId = GetComponent<NetworkID>();
 
+        //caso a ação seja do usuário, ele setará a camera para o seu carro
         if (networkId.IsMine)
         {
-            // set camera target
+            
             Camera cam = Camera.main;
-            CameraFollow camFollow = cam.GetComponent<CameraFollow>();
+            CameraMove camFollow = cam.GetComponent<CameraMove>();
             camFollow.target = transform;
         }
         else
         {
-            // disable collider for remote copy
             frontRightCollider.enabled = false;
             frontLeftCollider.enabled = false;
             rearRightCollider.enabled = false;
@@ -58,23 +57,23 @@ public class CarMovement : MonoBehaviour
 
     private void Update()
     {
-        // update when game is started
-        if(gameSceneManager.State == GameSceneManager.GameState.started)
+        // método fica escutando para continuar atualizando os objetos
+        if(gerenciadorAcoes.State == GerenciadorAcoes.GameState.started)
         {
-            // only process user input if the local player is the owner of the Car GameObject
+            // atualiza o movimento das rodas caso o carro seja o do próprio usuároio
             if (networkId.IsMine)
             {
-                UpdateWheelPhysics();
+                MovimentoRodaUsuario();
             }
 
-            UpdateWheelTransforms();
+            MovimentoRodaEnemy();
         }
     }
 
     /// <summary>
-    /// Updates the wheel transforms.
+    /// Atualiza a roda
     /// </summary>
-    void UpdateWheelTransforms()
+    void MovimentoRodaEnemy()
     {
         if (networkId.IsMine)
         {
@@ -89,7 +88,6 @@ public class CarMovement : MonoBehaviour
             frontRightTransform.position = position;
             frontRightTransform.rotation = rotation;
 
-            // update the front wheel rotation for generic tracker
             frontWheelRot = rotation;
 
             rearLeftCollider.GetWorldPose(out position, out rotation);
@@ -100,12 +98,11 @@ public class CarMovement : MonoBehaviour
             rearRightTransform.position = position;
             rearRightTransform.rotation = rotation;
 
-            // update the rear wheel rotation for generic tracker
             rearWheelRot = rotation;
         }
         else
         {
-            // apply the rotation updates for remote copies
+            // aplica a atualização da roda para o oponente
             frontLeftTransform.rotation = frontWheelRot;
             frontRightTransform.rotation = frontWheelRot;
             rearLeftTransform.rotation = rearWheelRot;
@@ -114,37 +111,37 @@ public class CarMovement : MonoBehaviour
     }
 
     /// <summary>
-    /// Updates the wheel physics.
+    /// Atualiza a física da roda
     /// </summary>
-    void UpdateWheelPhysics()
+    void MovimentoRodaUsuario()
     {
         float v = Input.GetAxis("Vertical");
         float h = Input.GetAxis("Horizontal");
 
-        // accelerate
+        // Aceleração
         rearRightCollider.motorTorque = v * engineForce;
         rearLeftCollider.motorTorque = v * engineForce;
         frontRightCollider.motorTorque = v * engineForce;
         frontLeftCollider.motorTorque = v * engineForce;
 
-        // steer
+        // Direção
         frontRightCollider.steerAngle = h * steerAngle;
         frontLeftCollider.steerAngle = h * steerAngle;
 
-        // apply brakeTorque
+        // Freio
         if (Input.GetKey(KeyCode.Space))
         {
-            Debug.Log("Break");
+            Debug.Log("Freio acionado");
             rearRightCollider.brakeTorque = breakForce;
             rearLeftCollider.brakeTorque = breakForce;
             frontRightCollider.brakeTorque = breakForce;
             frontLeftCollider.brakeTorque = breakForce;
         }
 
-        // reset brakeTorque
+        // resetar o freio
         if (Input.GetKeyUp(KeyCode.Space))
         {
-            Debug.Log("Break stop");
+            Debug.Log("Freio solto");
             rearRightCollider.brakeTorque = 0;
             rearLeftCollider.brakeTorque = 0;
             frontRightCollider.brakeTorque = 0;

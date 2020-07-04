@@ -2,16 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CameraFollow : MonoBehaviour
+public class CameraMove : MonoBehaviour
 {
-    /// <summary>
-    /// The target.
-    /// </summary>
+    /// Alvo
     public Transform target;
 
-    /// <summary>
-    /// The offset position.
-    /// </summary>
+    /// Posição do deslocamento
     public Vector3 offsetPosition;
 
     public float damp = 0.2f;
