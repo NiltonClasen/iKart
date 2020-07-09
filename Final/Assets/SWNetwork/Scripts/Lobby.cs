@@ -1,217 +1,147 @@
 ﻿using UnityEngine;
-using SWNetwork; 
+using SWNetwork;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-/// <summary>
-/// Basic lobby matchmaking implementation.
-/// </summary>
 public class Lobby : MonoBehaviour
 {
-    /// <summary>
-    /// Button for checking into SocketWeaver services
-    /// </summary>
-    public Button registerButton;
+    //Botão para registrar e sync com o SocketWeaver
+    public Button registrar;
 
-    /// <summary>
-    /// Button for joining or creating room
-    /// </summary>
-    public Button playButton;
+    public Button jogar;
 
-    /// <summary>
-    /// Button for entering custom playerId
-    /// </summary>
-    public InputField customPlayerIdField;
+    public InputField nome;
 
     void Start()
     {
-        // Add an event handler for the OnRoomReadyEvent
-        NetworkClient.Lobby.OnRoomReadyEvent += Lobby_OnRoomReadyEvent;
+        //Evento da sala pronta
+        NetworkClient.Lobby.OnRoomReadyEvent += SalaPronta;
 
-        // Add an event handler for the OnFailedToStartRoomEvent
-        NetworkClient.Lobby.OnFailedToStartRoomEvent += Lobby_OnFailedToStartRoomEvent;
+        //Conectou ao lobby
+        NetworkClient.Lobby.OnLobbyConnectedEvent += LobbyConectado;
 
-        // Add an event handler for the OnLobbyConnectedEvent
-        NetworkClient.Lobby.OnLobbyConnectedEvent += Lobby_OnLobbyConncetedEvent;
-
-        // allow player to register
-        registerButton.gameObject.SetActive(true);
-        playButton.gameObject.SetActive(false);
+        //Seta o botão de registrar como ativo
+        registrar.gameObject.SetActive(true);
+        jogar.gameObject.SetActive(false);
     }
 
     void onDestroy()
     {
-        // remove the handlers
-        NetworkClient.Lobby.OnRoomReadyEvent -= Lobby_OnRoomReadyEvent;
-        NetworkClient.Lobby.OnFailedToStartRoomEvent -= Lobby_OnFailedToStartRoomEvent;
-        NetworkClient.Lobby.OnLobbyConnectedEvent -= Lobby_OnLobbyConncetedEvent;
+        NetworkClient.Lobby.OnRoomReadyEvent -= SalaPronta;
+        NetworkClient.Lobby.OnLobbyConnectedEvent -= LobbyConectado;
     }
 
-    /* Lobby events handlers */
-    void Lobby_OnRoomReadyEvent(SWRoomReadyEventData eventData)
+    void SalaPronta(SWRoomReadyEventData eventData)
     {
-        Debug.Log("Room is ready: roomId= " + eventData.roomId);
-        // Room is ready to join and its game servers have been assigned.
-        ConnectToRoom();
+        ConectarSala();
     }
 
-    void Lobby_OnFailedToStartRoomEvent(SWFailedToStartRoomEventData eventData)
+    void LobbyConectado()
     {
-        Debug.Log("Failed to start room: " + eventData);
+        RegistrarJogador();
     }
 
-    void Lobby_OnLobbyConncetedEvent()
-    {
-        Debug.Log("Lobby connected");
-        RegisterPlayer();
-    }
-
-    /* UI event handlers */
-    /// <summary>
-    /// Register button was clicked
-    /// </summary>
     public void Register()
     {
-        string customPlayerId = customPlayerIdField.text;
+        string NomeJogador = nome.text;
 
-        if(customPlayerId != null && customPlayerId.Length > 0)
+        if (NomeJogador != null && NomeJogador.Length > 0)
         {
-            // use the user entered playerId to check into SocketWeaver. Make sure the PlayerId is unique.
-            NetworkClient.Instance.CheckIn(customPlayerId,(bool ok, string error) =>
+            //Realiza o checkin do jogador
+            NetworkClient.Instance.CheckIn(NomeJogador, (bool ok, string erro) =>
             {
                 if (!ok)
-                {
-                    Debug.LogError("Check-in failed: " + error);
-                }
+                    Debug.LogError("check-in com sucesso: " + erro);
             });
         }
         else
         {
-            // use a randomly generated playerId to check into SocketWeaver.
+            //Gera um nome aleatorio pelo SocketWeaver
             NetworkClient.Instance.CheckIn((bool ok, string error) =>
             {
                 if (!ok)
-                {
-                    Debug.LogError("Check-in failed: " + error);
-                }
+                    Debug.LogError("Deu erro no check-in: " + error);
             });
         }
     }
 
-    /// <summary>
-    /// Play button was clicked
-    /// </summary>
-    public void Play()
+    //Clicou no botão Jogar
+    public void Jogar()
     {
-        // Here we use the JoinOrCreateRoom method to get player into rooms quickly.
-        NetworkClient.Lobby.JoinOrCreateRoom(true, 2, 60, HandleJoinOrCreatedRoom);
+        //Coloca os jogadores dentro da sala através de um Handle
+        NetworkClient.Lobby.JoinOrCreateRoom(true, 2, 60, EntraCriaSala);
     }
 
-    /* Lobby helper methods*/
-    /// <summary>
-    /// Register the player to lobby
-    /// </summary>
-    void RegisterPlayer()
+    void RegistrarJogador()
     {
         NetworkClient.Lobby.Register((successful, reply, error) =>
         {
             if (successful)
             {
-                Debug.Log("Registered " + reply);
+                Debug.Log("Registrado " + reply);
 
                 if (reply.started)
                 {
-                    // player is already in a room and the room has started.
-                    // We can connect to the room's game servers now.
-                    ConnectToRoom();
+                    //O jogador já está na sala e pode iniciar a sala
+                    ConectarSala();
                 }
                 else
                 {
-                    // allow player to join or create room
-                    playButton.gameObject.SetActive(true);
-                    registerButton.gameObject.SetActive(false);
+                    //Habilita o botao jogar
+                    jogar.gameObject.SetActive(true);
+                    registrar.gameObject.SetActive(false);
                 }
-            }
-            else
-            {
-                Debug.Log("Failed to register " + error);
             }
         });
     }
 
-    /// <summary>
-    /// Callback method for NetworkClient.Lobby.JoinOrCreateRoom().
-    /// </summary>
-    /// <param name="successful">If set to <c>true</c> <paramref name="successful"/>, the player has joined or created a room.</param>
-    /// <param name="reply">Reply.</param>
-    /// <param name="error">Error.</param>
-    void HandleJoinOrCreatedRoom(bool successful, SWJoinRoomReply reply, SWLobbyError error)
+    void EntraCriaSala(bool successful, SWJoinRoomReply reply, SWLobbyError error)
     {
         if (successful)
         {
-            Debug.Log("Joined or created room " + reply);
-
-            // the player has joined a room which has already started.
+            //Pode iniciar a sala
             if (reply.started)
             {
-                ConnectToRoom();
+                ConectarSala();
             }
             else if (NetworkClient.Lobby.IsOwner)
             {
-                // the player did not find a room to join
-                // the player created a new room and became the room owner.
-                StartRoom();
+                StartRoom(); //Jogador pode Entrar a sala no socketWeaver
             }
-        }
-        else
-        {
-            Debug.Log("Failed to join or create room " + error);
         }
     }
 
-    /// <summary>
-    /// Start local player's current room. Lobby server will ask SocketWeaver to assign suitable game servers for the room.
-    /// </summary>
     void StartRoom()
     {
         NetworkClient.Lobby.StartRoom((okay, error) =>
         {
             if (okay)
             {
-                // Lobby server has sent request to SocketWeaver. The request is being processed.
-                // If socketweaver finds suitable server, Lobby server will invoke the OnRoomReadyEvent.
-                // If socketweaver cannot find suitable server, Lobby server will invoke the OnFailedToStartRoomEvent.
-                Debug.Log("Started room");
+                //SocketWeaver interpreta e permite a criacao 
+                Debug.Log("Deu boa");
             }
             else
             {
-                Debug.Log("Failed to start room " + error);
+                Debug.Log("Deu erro para entrar na sala " + error);
             }
         });
     }
 
-    /// <summary>
-    /// Connect to the game servers of the room.
-    /// </summary>
-    void ConnectToRoom()
+    void ConectarSala()
     {
-        NetworkClient.Instance.ConnectToRoom(HandleConnectedToRoom);
+        NetworkClient.Instance.ConnectToRoom(HandleConectarSala);
     }
 
-    /// <summary>
-    /// Callback method NetworkClient.Instance.ConnectToRoom();
-    /// </summary>
-    /// <param name="connected">If set to <c>true</c>, the client has connected to the game servers successfully.</param>
-    void HandleConnectedToRoom(bool connected)
+    void HandleConectarSala(bool connected)
     {
         if (connected)
         {
-            Debug.Log("Connected to room");
+            //Conseguiu entrar na sala e irá carregar a parte do jogo
             SceneManager.LoadScene(1);
         }
         else
         {
-            Debug.Log("Failed to connect to room");
+            Debug.Log("Deu erro ao tentar entrar no jogo");
         }
     }
 }

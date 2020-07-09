@@ -190,7 +190,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Demo
+  m_Text: iKart
 --- !u!222 &199081902
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -314,7 +314,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Register
+  m_Text: Registrar
 --- !u!222 &258136285
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -392,7 +392,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Play
+  m_Text: Jogar
 --- !u!222 &267303255
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -470,7 +470,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Enter custom playerId
+  m_Text: Digite o seu nome...
 --- !u!222 &961060214
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1104,7 +1104,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1833037651}
-        m_MethodName: Play
+        m_MethodName: Jogar
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1180,9 +1180,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6581631c7473c417595d6246fa1c8f8e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  registerButton: {fileID: 1127509317}
-  playButton: {fileID: 1455081305}
-  customPlayerIdField: {fileID: 1296285357}
+  registrar: {fileID: 1127509317}
+  jogar: {fileID: 1455081305}
+  nome: {fileID: 1296285357}
 --- !u!4 &1833037652
 Transform:
   m_ObjectHideFlags: 0
